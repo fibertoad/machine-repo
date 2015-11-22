@@ -1,0 +1,55 @@
+---
+title: "Weight Lifting"
+author: "Ryan Kraft"
+date: "November 19, 2015"
+output: 
+  html_document: 
+    keep_md: yes
+---
+This project is to distinguish between correct lifting of a dumbbell and incorrect lifting.  I used the GBM method to determine what the lifting methods was.  I had to remove  107 variables, mostly due to a significant amount of NA values.  The next set removed was id and time stamp information that would lead to a bad model. 
+
+```{r}
+#  pml-training can be found here https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv and pml-testing can be found here https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+read.csv("pml-training.csv") -> training
+pml_test <- read.csv("pml-testing.csv")
+set.seed(324)
+```
+
+Here is a full list of variables removed.
+```{r}
+training_names <- training[, ! apply(training, 2, function(x) any(is.na(x)))]
+library(dplyr)
+training_names <- select(training_names, -X, -user_name, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window, -kurtosis_roll_belt, -kurtosis_picth_belt, -kurtosis_yaw_belt, -skewness_roll_belt, -skewness_roll_belt.1, -skewness_yaw_belt, -max_yaw_belt, -min_yaw_belt, -amplitude_yaw_belt, -kurtosis_roll_arm, -kurtosis_picth_arm, -kurtosis_yaw_arm, -skewness_roll_arm, -skewness_pitch_arm, -skewness_yaw_arm, -kurtosis_roll_dumbbell, -kurtosis_picth_dumbbell, -kurtosis_yaw_dumbbell, -skewness_roll_dumbbell, -skewness_pitch_dumbbell, -skewness_yaw_dumbbell, -max_yaw_dumbbell, -min_yaw_dumbbell, -amplitude_yaw_dumbbell, -kurtosis_roll_forearm, -kurtosis_picth_forearm, -kurtosis_picth_forearm, -kurtosis_yaw_forearm, -skewness_roll_forearm , -skewness_pitch_forearm, -skewness_yaw_forearm, -max_yaw_forearm, -min_yaw_forearm, -amplitude_yaw_forearm)
+```
+
+Breaking up the data into two parts to create the model and find the accuracy of the model.
+```{r}
+library(caret)
+inTrain <- createDataPartition(training_names$classe, p = .65, list = FALSE)
+training_names_train <- training_names[inTrain,]
+training_names_test <- training_names[-inTrain,]
+
+```
+Creating the model. Fourth two variables were used in creation of the model.
+```{r, cache=TRUE}
+fit_gbm <- train(classe~., data=training_names_train, method = "gbm", verbose = F)
+```
+Predict on the test set to see accuracy of the model.
+```{r}
+result_gbm <- predict(fit_gbm, training_names_test)
+``` 
+I don't see many graphs that would be helpful do to the volume of variables.  This plot shows the progression of the model to its final stage.
+```{r}
+plot(fit_gbm)
+```
+
+```{r}
+fit_gbm$finalModel
+confusionMatrix(result_gbm, training_names_test$classe)
+
+```
+The accuracy is 96.47%. To my understanding this is relatively good accuracy. It is enough to get the assignment correct. Below is the answers to the assignment.
+```{r}
+result_gbm_plm <- predict(fit_gbm, pml_test)
+print(result_gbm_plm)
+```
